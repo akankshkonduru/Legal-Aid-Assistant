@@ -35,8 +35,8 @@ const ChatPage = () => {
             const response = await fetch(`${API_URL}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage.content }),
-            });
+                body: JSON.stringify({ user_query: userMessage.content }),
+            });            
 
             if (response.ok) {
                 const data = await response.json();
