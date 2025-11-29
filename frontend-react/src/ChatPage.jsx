@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Loader2, Bot, User } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Bot, User, FileText, X, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://127.0.0.1:8000';
@@ -14,6 +14,14 @@ const ChatPage = () => {
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
 
+    // Document Generation State
+    const [showDocModal, setShowDocModal] = useState(false);
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [formData, setFormData] = useState({});
+    const [generatingDoc, setGeneratingDoc] = useState(false);
+    const [generatedDocUrl, setGeneratedDocUrl] = useState(null);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -21,6 +29,22 @@ const ChatPage = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+        if (showDocModal) {
+            fetchTemplates();
+        }
+    }, [showDocModal]);
+
+    const fetchTemplates = async () => {
+        try {
+            const response = await fetch(`${API_URL}/templates`);
+            const data = await response.json();
+            setTemplates(data.templates || []);
+        } catch (error) {
+            console.error("Error fetching templates:", error);
+        }
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -36,12 +60,10 @@ const ChatPage = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_query: userMessage.content }),
-            });            
+            });
 
             if (response.ok) {
                 const data = await response.json();
-                // Assuming the API returns { response: "..." } or similar
-                // Adjust based on actual API response structure
                 const botResponse = data.response || data.message || JSON.stringify(data);
                 setMessages(prev => [...prev, { role: 'assistant', content: botResponse }]);
             } else {
@@ -54,27 +76,78 @@ const ChatPage = () => {
         }
     };
 
+    const handleTemplateSelect = (template) => {
+        setSelectedTemplate(template);
+        setFormData({});
+        setGeneratedDocUrl(null);
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleGenerateDocument = async () => {
+        if (!selectedTemplate) return;
+        setGeneratingDoc(true);
+        try {
+            const response = await fetch(`${API_URL}/document/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    template_name: selectedTemplate.id,
+                    user_inputs: formData,
+                    user_query: "Generate document based on inputs"
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setGeneratedDocUrl(data.pdf_url);
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `I have generated the ${selectedTemplate.title} for you. You can download it from the modal.`
+                }]);
+            } else {
+                alert("Failed to generate document.");
+            }
+        } catch (error) {
+            console.error("Error generating document:", error);
+            alert("Error generating document.");
+        } finally {
+            setGeneratingDoc(false);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-4xl h-[85vh] bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            className="w-full max-w-4xl h-[85vh] bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative"
         >
             {/* Header */}
-            <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-black/20">
-                <button
-                    onClick={() => navigate('/home')}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-                <div>
-                    <h1 className="font-mono font-bold text-cyber-green">ACTIVE SESSION</h1>
-                    <p className="text-xs text-gray-500 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        Connected to Legal Aid Core
-                    </p>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/20">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate('/home')}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h1 className="font-mono font-bold text-cyber-green">ACTIVE SESSION</h1>
+                        <p className="text-xs text-gray-500 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Connected to Legal Aid Core
+                        </p>
+                    </div>
                 </div>
+                <button
+                    onClick={() => setShowDocModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-cyber-teal/20 text-cyber-teal border border-cyber-teal/50 rounded-lg hover:bg-cyber-teal/30 transition-all text-sm"
+                >
+                    <FileText size={16} />
+                    Generate Doc
+                </button>
             </div>
 
             {/* Chat Area */}
@@ -92,8 +165,8 @@ const ChatPage = () => {
                         </div>
 
                         <div className={`max-w-[80%] p-3 rounded-xl text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-cyber-teal/10 border border-cyber-teal/20 text-gray-200 rounded-tr-none'
-                                : 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-none'
+                            ? 'bg-cyber-teal/10 border border-cyber-teal/20 text-gray-200 rounded-tr-none'
+                            : 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-none'
                             }`}>
                             {msg.content}
                         </div>
@@ -138,6 +211,118 @@ const ChatPage = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Document Generation Modal */}
+            <AnimatePresence>
+                {showDocModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90%] flex flex-col shadow-2xl"
+                        >
+                            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <FileText className="text-cyber-teal" size={20} />
+                                    Generate Legal Document
+                                </h2>
+                                <button
+                                    onClick={() => setShowDocModal(false)}
+                                    className="text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-hidden flex">
+                                {/* Template List */}
+                                <div className="w-1/3 border-r border-white/10 overflow-y-auto p-2 bg-black/20">
+                                    <h3 className="text-xs font-mono text-gray-500 mb-2 px-2 uppercase">Templates</h3>
+                                    <div className="space-y-1">
+                                        {templates.map(template => (
+                                            <button
+                                                key={template.id}
+                                                onClick={() => handleTemplateSelect(template)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedTemplate?.id === template.id
+                                                        ? 'bg-cyber-teal/20 text-cyber-teal border border-cyber-teal/30'
+                                                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                                                    }`}
+                                            >
+                                                {template.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Form Area */}
+                                <div className="flex-1 p-6 overflow-y-auto">
+                                    {selectedTemplate ? (
+                                        <div className="space-y-4">
+                                            <h3 className="text-xl font-bold text-white mb-4">{selectedTemplate.title}</h3>
+
+                                            {Object.entries(selectedTemplate.fields).map(([key, label]) => (
+                                                <div key={key} className="space-y-1">
+                                                    <label className="text-xs text-gray-400 uppercase font-mono">{label}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData[key] || ''}
+                                                        onChange={(e) => handleInputChange(key, e.target.value)}
+                                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyber-teal/50"
+                                                        placeholder={`Enter ${label}...`}
+                                                    />
+                                                </div>
+                                            ))}
+
+                                            <div className="pt-4 flex gap-3">
+                                                <button
+                                                    onClick={handleGenerateDocument}
+                                                    disabled={generatingDoc}
+                                                    className="flex-1 bg-cyber-teal text-black font-bold py-2 rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                                >
+                                                    {generatingDoc ? (
+                                                        <>
+                                                            <Loader2 size={18} className="animate-spin" />
+                                                            Generating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FileText size={18} />
+                                                            Generate PDF
+                                                        </>
+                                                    )}
+                                                </button>
+
+                                                {generatedDocUrl && (
+                                                    <a
+                                                        href={generatedDocUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-colors flex items-center gap-2"
+                                                    >
+                                                        <Download size={18} />
+                                                        Download
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-2">
+                                            <FileText size={48} className="opacity-20" />
+                                            <p>Select a template to start drafting</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };

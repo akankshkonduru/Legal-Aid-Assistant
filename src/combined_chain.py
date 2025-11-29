@@ -6,8 +6,8 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from src.retriever import build_retriever
 from src.memory_chain import MemoryChatbot
-from src.document_chain import DocumentGeneratorChain
-from src.document_intent import detect_document_intent
+
+
 
 
 # ---------------------------------------------------------
@@ -90,7 +90,7 @@ class CombinedLegalChatbot:
         self.llm = load_llm(model_name)
         self.retriever = build_retriever(5)
         self.memory = MemoryChatbot()
-        self.doc_gen = DocumentGeneratorChain()
+
 
     # -----------------------------------------------------
     def _get_memory_string(self):
@@ -120,60 +120,12 @@ class CombinedLegalChatbot:
             return "\n---\n".join([d.page_content for d in docs])
         return "None"
 
-    # -----------------------------------------------------
-    # 🔥 Document Generation Handler
-    # -----------------------------------------------------
-    def _handle_document_flow(self, user_query, template_name):
-        """Handles FIR / RTI / Notice / Complaint generation."""
 
-        template = self.doc_gen.load_template(template_name)
-
-        print(f"\n--- Document Required: {template['title']} ---")
-
-        # Autofill from memory
-        autofilled = {}
-        for field_key, field_label in template["fields"].items():
-            autofilled[field_key] = (
-                self.memory.get_fact(field_key)
-                or ""  # if memory does not have value
-            )
-
-        # Ask user for missing values
-        print("Provide the following details:")
-        for field_key, field_label in template["fields"].items():
-            if not autofilled[field_key]:
-                value = input(f"{field_label}: ").strip()
-                autofilled[field_key] = value
-
-        # Retrieve RAG context
-        docs = self.retriever.invoke(user_query)
-        context = "\n---\n".join([d.page_content for d in docs]) or "None"
-
-        # Generate document draft
-        draft = self.doc_gen.generate_document(
-            template_name=template_name,
-            user_inputs=autofilled,
-            memory_string=self._get_memory_string(),
-            rag_context=context,
-        )
-
-        return (
-            f"\n📄 **Draft generated for: {template['title']}**\n\n"
-            f"{draft}\n\n"
-            "You may now save/export it to PDF."
-        )
 
     # -----------------------------------------------------
     # MAIN GENERATE FUNCTION
     # -----------------------------------------------------
     def generate(self, user_query):
-
-        # 0️⃣ Detect document request
-        doc_template = detect_document_intent(user_query)
-        
-
-        if doc_template:
-            return self._handle_document_flow(user_query, doc_template)
 
         # 1️⃣ Update memory
         self.memory.add_user_message(user_query)

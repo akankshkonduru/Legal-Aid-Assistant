@@ -1,8 +1,11 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.staticfiles import StaticFiles
 import pyrebase
 import json
 from pydantic import BaseModel
 import uvicorn
+
+API_URL = "http://127.0.0.1:8000"
 
 import sys
 import os
@@ -26,6 +29,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount generated documents directory
+os.makedirs("generated_documents", exist_ok=True)
+app.mount("/generated_documents", StaticFiles(directory="generated_documents"), name="generated_documents")
+
 # Initialize chains
 chat_chain = CombinedLegalChatbot()
 doc_chain = DocumentGeneratorChain()
@@ -48,19 +55,54 @@ def chat_endpoint(request: ChatRequest):
     return {"response": response}
 
 
-# @app.post("/document/generate")
-# def generate_document(request: DocumentRequest):
-#     pdf_path, text = doc_chain.generate(
-#         template_name=request.template_name,
-#         user_inputs=request.user_inputs,
-#         user_query=request.user_query
-#     )
+@app.post("/document/generate")
+def generate_document(request: DocumentRequest):
+    pdf_path, text = doc_chain.generate(
+        template_name=request.template_name,
+        field_values=request.user_inputs,
+        user_query=request.user_query
+    )
+    
+    # Convert absolute path to relative URL path
+    filename = os.path.basename(pdf_path)
+    try:
+        rel_path = os.path.relpath(pdf_path, os.getcwd())
+    except ValueError:
+        rel_path = pdf_path
 
-#     return {
-#         "message": "Document generated successfully",
-#         "pdf_path": pdf_path,
-#         "content_preview": text[:500]
-#     }
+    rel_path = rel_path.replace("\\", "/")
+    
+    if rel_path.startswith("generated_documents/"):
+        url_path = rel_path
+    else:
+        url_path = f"generated_documents/{os.path.basename(pdf_path)}"
+
+    download_url = f"{API_URL}/{url_path}"
+
+    return {
+        "message": "Document generated successfully",
+        "pdf_url": download_url,
+        "content_preview": text[:500]
+    }
+
+@app.get("/templates")
+def list_templates():
+    template_dir = "src/templates"
+    templates = []
+    if os.path.exists(template_dir):
+        for filename in os.listdir(template_dir):
+            if filename.endswith(".json"):
+                try:
+                    with open(os.path.join(template_dir, filename), "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        templates.append({
+                            "id": filename.replace(".json", ""),
+                            "title": data.get("title", filename),
+                            "fields": data.get("fields", {})
+                        })
+                except Exception as e:
+                    print(f"Error reading {filename}: {e}")
+    return {"templates": templates}
 
 
 # @app.post("/voice/chat")
