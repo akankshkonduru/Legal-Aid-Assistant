@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Loader2, Bot, User, FileText, X, Download } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Bot, User, FileText, X, Download, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://127.0.0.1:8000';
@@ -21,6 +21,9 @@ const ChatPage = () => {
     const [formData, setFormData] = useState({});
     const [generatingDoc, setGeneratingDoc] = useState(false);
     const [generatedDocUrl, setGeneratedDocUrl] = useState(null);
+
+    // Voice Chat State
+    const [showVoiceModal, setShowVoiceModal] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -122,32 +125,41 @@ const ChatPage = () => {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-4xl h-[85vh] bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative"
+            className="w-full max-w-4xl h-[85vh] bg-white border border-legal-border rounded-2xl flex flex-col overflow-hidden shadow-2xl relative"
         >
             {/* Header */}
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/20">
+            <div className="p-4 border-b border-legal-border flex items-center justify-between bg-legal-bg">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/home')}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                        className="p-2 hover:bg-white rounded-lg transition-colors text-legal-muted hover:text-legal-navy"
                     >
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 className="font-mono font-bold text-cyber-green">ACTIVE SESSION</h1>
-                        <p className="text-xs text-gray-500 flex items-center gap-2">
+                        <h1 className="font-serif font-bold text-legal-navy">Active Session</h1>
+                        <p className="text-xs text-legal-muted flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             Connected to Legal Aid Core
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowDocModal(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-cyber-teal/20 text-cyber-teal border border-cyber-teal/50 rounded-lg hover:bg-cyber-teal/30 transition-all text-sm"
-                >
-                    <FileText size={16} />
-                    Generate Doc
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowVoiceModal(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-legal-navy/10 text-legal-navy border border-legal-navy/20 rounded-lg hover:bg-legal-navy/20 transition-all text-sm"
+                    >
+                        <Mic size={16} />
+                        Voice Mode
+                    </button>
+                    <button
+                        onClick={() => setShowDocModal(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-legal-navy/10 text-legal-navy border border-legal-navy/20 rounded-lg hover:bg-legal-navy/20 transition-all text-sm"
+                    >
+                        <FileText size={16} />
+                        Generate Doc
+                    </button>
+                </div>
             </div>
 
             {/* Chat Area */}
@@ -159,14 +171,14 @@ const ChatPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                     >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-cyber-teal/20 text-cyber-teal' : 'bg-cyber-green/20 text-cyber-green'
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-legal-navy text-white' : 'bg-legal-gold/20 text-legal-gold'
                             }`}>
                             {msg.role === 'user' ? <User size={18} /> : <Bot size={18} />}
                         </div>
 
                         <div className={`max-w-[80%] p-3 rounded-xl text-sm leading-relaxed ${msg.role === 'user'
-                            ? 'bg-cyber-teal/10 border border-cyber-teal/20 text-gray-200 rounded-tr-none'
-                            : 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-none'
+                            ? 'bg-legal-navy text-white rounded-tr-none shadow-sm'
+                            : 'bg-legal-bg border border-legal-border text-legal-text rounded-tl-none shadow-sm'
                             }`}>
                             {msg.content}
                         </div>
@@ -179,12 +191,12 @@ const ChatPage = () => {
                         animate={{ opacity: 1 }}
                         className="flex gap-3"
                     >
-                        <div className="w-8 h-8 bg-cyber-green/20 text-cyber-green rounded-lg flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 bg-legal-gold/20 text-legal-gold rounded-lg flex items-center justify-center shrink-0">
                             <Bot size={18} />
                         </div>
-                        <div className="bg-white/5 border border-white/10 p-3 rounded-xl rounded-tl-none flex items-center gap-2">
-                            <Loader2 size={16} className="animate-spin text-cyber-green" />
-                            <span className="text-xs text-gray-500 font-mono">ANALYZING LEGAL PRECEDENTS...</span>
+                        <div className="bg-legal-bg border border-legal-border p-3 rounded-xl rounded-tl-none flex items-center gap-2 shadow-sm">
+                            <Loader2 size={16} className="animate-spin text-legal-navy" />
+                            <span className="text-xs text-legal-muted font-mono">Analyzing legal precedents...</span>
                         </div>
                     </motion.div>
                 )}
@@ -192,20 +204,20 @@ const ChatPage = () => {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSend} className="p-4 border-t border-white/10 bg-black/20">
+            <form onSubmit={handleSend} className="p-4 border-t border-legal-border bg-legal-bg">
                 <div className="flex gap-2">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Type your legal query..."
-                        className="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyber-green/50 placeholder-gray-600"
+                        className="flex-1 bg-white border border-legal-border rounded-lg px-4 py-3 text-legal-text focus:outline-none focus:border-legal-navy placeholder-legal-muted shadow-sm"
                         disabled={loading}
                     />
                     <button
                         type="submit"
                         disabled={loading || !input.trim()}
-                        className="px-6 py-2 bg-cyber-green text-black rounded-lg font-bold hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        className="px-6 py-2 bg-legal-navy text-white rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 shadow-md"
                     >
                         <Send size={18} />
                     </button>
@@ -225,16 +237,16 @@ const ChatPage = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90%] flex flex-col shadow-2xl"
+                            className="bg-white border border-legal-border rounded-2xl w-full max-w-2xl max-h-[90%] flex flex-col shadow-2xl"
                         >
-                            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <FileText className="text-cyber-teal" size={20} />
+                            <div className="p-4 border-b border-legal-border flex justify-between items-center bg-legal-bg rounded-t-2xl">
+                                <h2 className="text-lg font-bold text-legal-navy flex items-center gap-2">
+                                    <FileText className="text-legal-gold" size={20} />
                                     Generate Legal Document
                                 </h2>
                                 <button
                                     onClick={() => setShowDocModal(false)}
-                                    className="text-gray-400 hover:text-white transition-colors"
+                                    className="text-legal-muted hover:text-legal-text transition-colors"
                                 >
                                     <X size={20} />
                                 </button>
@@ -242,16 +254,16 @@ const ChatPage = () => {
 
                             <div className="flex-1 overflow-hidden flex">
                                 {/* Template List */}
-                                <div className="w-1/3 border-r border-white/10 overflow-y-auto p-2 bg-black/20">
-                                    <h3 className="text-xs font-mono text-gray-500 mb-2 px-2 uppercase">Templates</h3>
+                                <div className="w-1/3 border-r border-legal-border overflow-y-auto p-2 bg-legal-bg">
+                                    <h3 className="text-xs font-mono text-legal-muted mb-2 px-2 uppercase">Templates</h3>
                                     <div className="space-y-1">
                                         {templates.map(template => (
                                             <button
                                                 key={template.id}
                                                 onClick={() => handleTemplateSelect(template)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedTemplate?.id === template.id
-                                                        ? 'bg-cyber-teal/20 text-cyber-teal border border-cyber-teal/30'
-                                                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                                                    ? 'bg-legal-navy/10 text-legal-navy border border-legal-navy/20'
+                                                    : 'text-legal-muted hover:bg-white hover:text-legal-text'
                                                     }`}
                                             >
                                                 {template.title}
@@ -264,16 +276,16 @@ const ChatPage = () => {
                                 <div className="flex-1 p-6 overflow-y-auto">
                                     {selectedTemplate ? (
                                         <div className="space-y-4">
-                                            <h3 className="text-xl font-bold text-white mb-4">{selectedTemplate.title}</h3>
+                                            <h3 className="text-xl font-bold text-legal-navy mb-4">{selectedTemplate.title}</h3>
 
                                             {Object.entries(selectedTemplate.fields).map(([key, label]) => (
                                                 <div key={key} className="space-y-1">
-                                                    <label className="text-xs text-gray-400 uppercase font-mono">{label}</label>
+                                                    <label className="text-xs text-legal-muted uppercase font-bold">{label}</label>
                                                     <input
                                                         type="text"
                                                         value={formData[key] || ''}
                                                         onChange={(e) => handleInputChange(key, e.target.value)}
-                                                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyber-teal/50"
+                                                        className="w-full bg-white border border-legal-border rounded-lg px-3 py-2 text-legal-text focus:outline-none focus:border-legal-navy"
                                                         placeholder={`Enter ${label}...`}
                                                     />
                                                 </div>
@@ -283,7 +295,7 @@ const ChatPage = () => {
                                                 <button
                                                     onClick={handleGenerateDocument}
                                                     disabled={generatingDoc}
-                                                    className="flex-1 bg-cyber-teal text-black font-bold py-2 rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    className="flex-1 bg-legal-navy text-white font-bold py-2 rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
                                                 >
                                                     {generatingDoc ? (
                                                         <>
@@ -303,7 +315,7 @@ const ChatPage = () => {
                                                         href={generatedDocUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-colors flex items-center gap-2"
+                                                        className="px-4 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-2"
                                                     >
                                                         <Download size={18} />
                                                         Download
@@ -318,6 +330,41 @@ const ChatPage = () => {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Voice Chat Modal */}
+            <AnimatePresence>
+                {showVoiceModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white border border-legal-border rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-4 border-b border-legal-border flex justify-between items-center bg-legal-bg">
+                                <h2 className="text-lg font-bold text-legal-navy flex items-center gap-2">
+                                    <Mic className="text-legal-gold" size={20} />
+                                    Voice Assistant
+                                </h2>
+                                <button
+                                    onClick={() => setShowVoiceModal(false)}
+                                    className="text-legal-muted hover:text-legal-text transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-4 h-[500px] flex items-center justify-center text-legal-muted">
+                                <p>Voice chat feature is currently unavailable.</p>
                             </div>
                         </motion.div>
                     </motion.div>

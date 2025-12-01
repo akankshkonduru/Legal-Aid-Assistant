@@ -31,12 +31,19 @@ requests
 tqdm
 fpdf
 
-# --------------------------
-# Livekit dependencies 
-# --------------------------
+
 livekit-agents
-livekit-plugins-langchain
 livekit-plugins-openai
-langchain
-langchain-core
-langchain-ollama
+livekit-plugins-silero
+livekit-plugins-google
+livekit-plugins-noise-cancellation
+mem0ai
+
+langchain_community
+requests
+python-dotenv
+flask
+flask-cors
+PyJWT
+motor
+groq

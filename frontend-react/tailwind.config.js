@@ -7,20 +7,20 @@ export default {
     theme: {
         extend: {
             colors: {
-                cyber: {
-                    green: '#00ff9d',
-                    teal: '#00f0ff',
-                    dark: '#050510',
-                    glass: 'rgba(255, 255, 255, 0.05)',
+                legal: {
+                    navy: '#1e3a8a',
+                    gold: '#b45309',
+                    bg: '#f8fafc',
+                    surface: '#ffffff',
+                    text: '#0f172a',
+                    muted: '#64748b',
+                    border: '#e2e8f0',
                 }
             },
             fontFamily: {
-                mono: ['"Space Mono"', 'monospace'],
                 sans: ['Inter', 'sans-serif'],
+                serif: ['Merriweather', 'serif'],
             },
-            animation: {
-                'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            }
         },
     },
     plugins: [],

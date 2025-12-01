@@ -1,134 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Square, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Square, Loader2, AlertCircle, CheckCircle2, Scale } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import HomePage from './HomePage';
 import ChatPage from './ChatPage';
 
 const API_URL = 'http://127.0.0.1:8000';
 
-const ParticleNetwork = () => {
-    const canvasRef = useRef(null);
-    const mouseRef = useRef({ x: 0, y: 0 });
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        let animationFrameId;
-
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        const particles = [];
-        const particleCount = 200;
-        const connectionDistance = 120;
-        const mouseDistance = 200;
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2 + 1;
-                this.baseX = this.x;
-                this.baseY = this.y;
-                this.density = (Math.random() * 30) + 1;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-
-                let dx = mouseRef.current.x - this.x;
-                let dy = mouseRef.current.y - this.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                let forceDirectionX = dx / distance;
-                let forceDirectionY = dy / distance;
-                let maxDistance = mouseDistance;
-                let force = (maxDistance - distance) / maxDistance;
-                let directionX = forceDirectionX * force * this.density;
-                let directionY = forceDirectionY * force * this.density;
-
-                if (distance < mouseDistance) {
-                    this.x -= directionX;
-                    this.y -= directionY;
-                } else {
-                    if (this.x !== this.baseX) {
-                        let dx = this.x - this.baseX;
-                        this.x -= dx / 10;
-                    }
-                    if (this.y !== this.baseY) {
-                        let dy = this.y - this.baseY;
-                        this.y -= dy / 10;
-                    }
-                }
-            }
-
-            draw() {
-                ctx.fillStyle = '#00ff9d';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.fill();
-            }
-        }
-
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
-        }
-
-        const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-
-                for (let j = i; j < particles.length; j++) {
-                    let dx = particles[i].x - particles[j].x;
-                    let dy = particles[i].y - particles[j].y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < connectionDistance) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(0, 255, 157, ${1 - distance / connectionDistance})`;
-                        ctx.lineWidth = 1;
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-            animationFrameId = requestAnimationFrame(animate);
-        };
-
-        animate();
-
-        const handleMouseMove = (event) => {
-            mouseRef.current.x = event.x;
-            mouseRef.current.y = event.y;
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-
-        return () => {
-            window.removeEventListener('resize', resizeCanvas);
-            window.removeEventListener('mousemove', handleMouseMove);
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, []);
-
-    return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10 bg-cyber-dark" />;
-};
 
 const LoginPage = ({ setUser }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -208,34 +87,34 @@ const LoginPage = ({ setUser }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="relative w-full max-w-md p-8 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl"
+            className="relative w-full max-w-md p-8 rounded-2xl bg-white shadow-xl border border-legal-border"
         >
             <div className="flex flex-col items-center mb-8">
-                <div className="w-12 h-12 bg-cyber-green/20 rounded-lg flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(0,255,157,0.3)]">
-                    <Square className="w-6 h-6 text-cyber-green" />
+                <div className="w-16 h-16 bg-legal-navy/10 rounded-full flex items-center justify-center mb-4">
+                    <Scale className="w-8 h-8 text-legal-navy" />
                 </div>
-                <h1 className="text-3xl font-mono font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyber-green to-cyber-teal drop-shadow-[0_0_10px_rgba(0,255,157,0.5)]">
-                    LEGAL AID CHATBOT
+                <h1 className="text-3xl font-serif font-bold tracking-tight text-legal-navy text-center">
+                    Legal Aid Assistant
                 </h1>
-                <p className="text-gray-400 text-sm mt-2 font-mono italic">
-                    "Justice never sleeps, and neither do I."
+                <p className="text-legal-muted text-sm mt-2 text-center">
+                    Professional legal guidance, simplified.
                 </p>
             </div>
 
-            <div className="flex p-1 bg-black/20 rounded-lg mb-6">
+            <div className="flex p-1 bg-legal-bg rounded-lg mb-6 border border-legal-border">
                 <button
                     onClick={() => setIsLogin(true)}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${isLogin ? 'bg-cyber-green/20 text-cyber-green shadow-sm' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${isLogin ? 'bg-white text-legal-navy shadow-sm' : 'text-legal-muted hover:text-legal-text'
                         }`}
                 >
-                    LOGIN
+                    Login
                 </button>
                 <button
                     onClick={() => setIsLogin(false)}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${!isLogin ? 'bg-cyber-green/20 text-cyber-green shadow-sm' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${!isLogin ? 'bg-white text-legal-navy shadow-sm' : 'text-legal-muted hover:text-legal-text'
                         }`}
                 >
-                    SIGN UP
+                    Sign Up
                 </button>
             </div>
 
@@ -243,24 +122,24 @@ const LoginPage = ({ setUser }) => {
                 {!isLogin && (
                     <div className="flex gap-4">
                         <div className="flex-1">
-                            <label className="block text-xs font-mono text-cyber-green mb-1 ml-1">FIRST NAME</label>
+                            <label className="block text-xs font-bold text-legal-text mb-1 ml-1">First Name</label>
                             <input
                                 type="text"
                                 required
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyber-green/50 focus:ring-1 focus:ring-cyber-green/50 transition-all font-mono text-sm"
+                                className="w-full bg-legal-bg border border-legal-border rounded-lg px-4 py-3 text-legal-text placeholder-legal-muted focus:outline-none focus:border-legal-navy focus:ring-1 focus:ring-legal-navy transition-all text-sm"
                                 placeholder="John"
                             />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-xs font-mono text-cyber-green mb-1 ml-1">LAST NAME</label>
+                            <label className="block text-xs font-bold text-legal-text mb-1 ml-1">Last Name</label>
                             <input
                                 type="text"
                                 required
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyber-green/50 focus:ring-1 focus:ring-cyber-green/50 transition-all font-mono text-sm"
+                                className="w-full bg-legal-bg border border-legal-border rounded-lg px-4 py-3 text-legal-text placeholder-legal-muted focus:outline-none focus:border-legal-navy focus:ring-1 focus:ring-legal-navy transition-all text-sm"
                                 placeholder="Doe"
                             />
                         </div>
@@ -268,24 +147,24 @@ const LoginPage = ({ setUser }) => {
                 )}
 
                 <div>
-                    <label className="block text-xs font-mono text-cyber-green mb-1 ml-1">EMAIL_ID</label>
+                    <label className="block text-xs font-bold text-legal-text mb-1 ml-1">Email Address</label>
                     <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyber-green/50 focus:ring-1 focus:ring-cyber-green/50 transition-all font-mono text-sm"
-                        placeholder="user@system.net"
+                        className="w-full bg-legal-bg border border-legal-border rounded-lg px-4 py-3 text-legal-text placeholder-legal-muted focus:outline-none focus:border-legal-navy focus:ring-1 focus:ring-legal-navy transition-all text-sm"
+                        placeholder="user@example.com"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-mono text-cyber-green mb-1 ml-1">PASSCODE</label>
+                    <label className="block text-xs font-bold text-legal-text mb-1 ml-1">Password</label>
                     <input
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyber-green/50 focus:ring-1 focus:ring-cyber-green/50 transition-all font-mono text-sm"
+                        className="w-full bg-legal-bg border border-legal-border rounded-lg px-4 py-3 text-legal-text placeholder-legal-muted focus:outline-none focus:border-legal-navy focus:ring-1 focus:ring-legal-navy transition-all text-sm"
                         placeholder="••••••••"
                     />
                 </div>
@@ -308,9 +187,9 @@ const LoginPage = ({ setUser }) => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-cyber-green hover:bg-emerald-400 text-black font-bold py-3 rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(0,255,157,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+                    className="w-full bg-legal-navy hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
                 >
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'LOGIN' : 'SIGN UP')}
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Login' : 'Create Account')}
                 </button>
             </form>
         </motion.div>
@@ -329,8 +208,7 @@ function App() {
 
     return (
         <Router>
-            <div className="relative min-h-screen flex items-center justify-center font-sans text-white overflow-hidden">
-                <ParticleNetwork />
+            <div className="relative min-h-screen flex items-center justify-center font-sans text-legal-text overflow-hidden bg-legal-bg">
                 <Routes>
                     <Route path="/" element={<LoginPage setUser={setUser} />} />
                     <Route path="/home" element={<HomePage user={user} setUser={setUser} />} />
