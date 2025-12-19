@@ -41,6 +41,7 @@ class HistoryManager:
         conn.commit()
         conn.close()
 
+
     def save_session(self, user_id: str, messages: List[Any]) -> str:
         """
         Saves a full chat session and its messages.
@@ -145,3 +146,16 @@ class HistoryManager:
             })
             
         return messages
+
+    def delete_session(self, session_id: str):
+        """
+        Deletes a session and its messages.
+        """
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        
+        conn.commit()
+        conn.close()
