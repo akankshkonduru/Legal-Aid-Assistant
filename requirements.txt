@@ -1,4 +1,12 @@
 # --------------------------
+# Web Framework
+# --------------------------
+fastapi
+uvicorn[standard]
+pyrebase4
+pydantic
+
+# --------------------------
 # LangChain Core
 # --------------------------
 langchain
@@ -15,14 +23,6 @@ pinecone-client
 sentence-transformers
 
 # --------------------------
-# Audio / Speech-to-Text
-# --------------------------
-openai-whisper
-sounddevice
-scipy
-numpy
-
-# --------------------------
 # Utilities
 # --------------------------
 python-dotenv
@@ -30,20 +30,3 @@ pandas
 requests
 tqdm
 fpdf
-
-
-livekit-agents
-livekit-plugins-openai
-livekit-plugins-silero
-livekit-plugins-google
-livekit-plugins-noise-cancellation
-mem0ai
-
-langchain_community
-requests
-python-dotenv
-flask
-flask-cors
-PyJWT
-motor
-groq
