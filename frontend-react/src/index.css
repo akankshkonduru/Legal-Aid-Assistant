@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    /* overflow: hidden; Removed to allow natural scrolling if needed, or keep if app-like feel is desired. Let's keep it scrollable for now as it is safer. */
+}

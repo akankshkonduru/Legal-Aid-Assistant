@@ -1,13 +1,37 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.staticfiles import StaticFiles
+import pyrebase
+import json
 from pydantic import BaseModel
 import uvicorn
+
+API_URL = "http://127.0.0.1:8000"
+
+import sys
+import os
+
+# Add the project root directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import your chains
 from src.combined_chain import CombinedLegalChatbot     
 from src.document_chain import DocumentGeneratorChain
-from src.voice_utils import transcribe_audio
 
 app = FastAPI(title="Legal Aid Assistant API")
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount generated documents directory
+os.makedirs("generated_documents", exist_ok=True)
+app.mount("/generated_documents", StaticFiles(directory="generated_documents"), name="generated_documents")
 
 # Initialize chains
 chat_chain = CombinedLegalChatbot()
@@ -27,23 +51,58 @@ class DocumentRequest(BaseModel):
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
-    response = chat_chain.run(request.user_query)
+    response = chat_chain.generate(request.user_query)
     return {"response": response}
 
 
-# @app.post("/document/generate")
-# def generate_document(request: DocumentRequest):
-#     pdf_path, text = doc_chain.generate(
-#         template_name=request.template_name,
-#         user_inputs=request.user_inputs,
-#         user_query=request.user_query
-#     )
+@app.post("/document/generate")
+def generate_document(request: DocumentRequest):
+    pdf_path, text = doc_chain.generate(
+        template_name=request.template_name,
+        field_values=request.user_inputs,
+        user_query=request.user_query
+    )
+    
+    # Convert absolute path to relative URL path
+    filename = os.path.basename(pdf_path)
+    try:
+        rel_path = os.path.relpath(pdf_path, os.getcwd())
+    except ValueError:
+        rel_path = pdf_path
 
-#     return {
-#         "message": "Document generated successfully",
-#         "pdf_path": pdf_path,
-#         "content_preview": text[:500]
-#     }
+    rel_path = rel_path.replace("\\", "/")
+    
+    if rel_path.startswith("generated_documents/"):
+        url_path = rel_path
+    else:
+        url_path = f"generated_documents/{os.path.basename(pdf_path)}"
+
+    download_url = f"{API_URL}/{url_path}"
+
+    return {
+        "message": "Document generated successfully",
+        "pdf_url": download_url,
+        "content_preview": text[:500]
+    }
+
+@app.get("/templates")
+def list_templates():
+    template_dir = "src/templates"
+    templates = []
+    if os.path.exists(template_dir):
+        for filename in os.listdir(template_dir):
+            if filename.endswith(".json"):
+                try:
+                    with open(os.path.join(template_dir, filename), "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        templates.append({
+                            "id": filename.replace(".json", ""),
+                            "title": data.get("title", filename),
+                            "fields": data.get("fields", {})
+                        })
+                except Exception as e:
+                    print(f"Error reading {filename}: {e}")
+    return {"templates": templates}
 
 
 # @app.post("/voice/chat")
@@ -66,6 +125,113 @@ def chat_endpoint(request: ChatRequest):
 def reset_memory():
     chat_chain.memory.reset()
     return {"status": "Memory cleared"}
+
+
+# ----------- AUTHENTICATION -----------
+
+firebaseConfig = {
+    "apiKey": "AIzaSyCqREwfAsApRLrdgHSeA1q09pfVt0vOLPs",
+    "authDomain": "legal-aid-ead1c.firebaseapp.com",
+    "databaseURL": "https://legal-aid-ead1c-default-rtdb.firebaseio.com",
+    "projectId": "legal-aid-ead1c",
+    "storageBucket": "legal-aid-ead1c.appspot.com",
+    "messagingSenderId": "888124238174",
+    "appId": "1:888124238174:web:5da2372465b7c1430ec7cf",
+    "measurementId": "G-GEW1E0F7F1"
+}
+
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
+
+USERS_FILE = "users.json"
+
+def save_user_to_file(user_data):
+    users = []
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r") as f:
+                users = json.load(f)
+        except:
+            pass
+    
+    # Check if user already exists and update, or append
+    for i, u in enumerate(users):
+        if u.get("email") == user_data["email"]:
+            users[i] = user_data
+            break
+    else:
+        users.append(user_data)
+        
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=4)
+
+def get_user_from_file(email):
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r") as f:
+                users = json.load(f)
+                for user in users:
+                    if user.get("email") == email:
+                        return user
+        except:
+            pass
+    return None
+
+class User(BaseModel):
+    email: str
+    password: str
+
+class SignupUser(User):
+    firstName: str
+    lastName: str
+
+@app.post("/signup")
+def signup(user: SignupUser):
+    try:
+        auth.create_user_with_email_and_password(user.email, user.password)
+        # Save additional details to local file
+        save_user_to_file(user.dict())
+        return {"message": "Signup successful"}
+    except Exception as e:
+        error_message = str(e)
+        try:
+            if "{" in error_message:
+                json_part = error_message[error_message.find("{"):]
+                error_data = json.loads(json_part)
+                if "error" in error_data and "message" in error_data["error"]:
+                    error_message = error_data["error"]["message"]
+        except:
+            pass
+        raise HTTPException(status_code=400, detail=error_message)
+
+
+@app.post("/login")
+def login(user: User):
+    try:
+        auth.sign_in_with_email_and_password(user.email, user.password)
+        # Fetch user details
+        user_data = get_user_from_file(user.email)
+        response = {"message": "Login successful"}
+        if user_data:
+            response["firstName"] = user_data.get("firstName", "")
+            response["lastName"] = user_data.get("lastName", "")
+        else:
+            # Fallback if not found in local file
+            response["firstName"] = "User"
+            response["lastName"] = ""
+            
+        return response
+    except Exception as e:
+        error_message = str(e)
+        try:
+            if "{" in error_message:
+                json_part = error_message[error_message.find("{"):]
+                error_data = json.loads(json_part)
+                if "error" in error_data and "message" in error_data["error"]:
+                    error_message = error_data["error"]["message"]
+        except:
+            pass
+        raise HTTPException(status_code=400, detail=error_message)
 
 
 if __name__ == "__main__":

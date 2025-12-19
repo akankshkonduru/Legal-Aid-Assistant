@@ -1,29 +1,54 @@
-import asyncio
-import aiohttp
-from livekit.agents import AutoSubscribeAgent, InputAudioStream, OutputAudioStream
+from dotenv import load_dotenv
 
-FASTAPI_URL = "http://localhost:8000/chat"
+from livekit import agents, rtc
+from livekit.agents import AgentServer,AgentSession, Agent, room_io
+from livekit.plugins import noise_cancellation, silero
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-async def call_langchain_api(text):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(FASTAPI_URL, json={"user_query": text}) as resp:
-            data = await resp.json()
-            return data["response"]
+import os
+
+load_dotenv()
+
+LIVEKIT_URL = os.getenv("LIVEKIT_URL")
+LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
+LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
 
 
-class LegalAidVoiceAgent(AutoSubscribeAgent):
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions="""You are a helpful voice AI assistant.
+            You eagerly assist users with their questions by providing information from your extensive knowledge.
+            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
+            You are curious, friendly, and have a sense of humor.""",
+        )
 
-    async def on_audio_stream(self, audio: InputAudioStream):
-        async for transcript in audio.transcriptions():
-            user_msg = transcript.text
-            print("User:", user_msg)
+server = AgentServer()
 
-            # Send to LangChain backend
-            reply = await call_langchain_api(user_msg)
-            print("Bot:", reply)
+@server.rtc_session()
+async def my_agent(ctx: agents.JobContext):
+    session = AgentSession(
+        stt="assemblyai/universal-streaming:en",
+        llm="openai/gpt-4.1-mini",
+        tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
+        vad=silero.VAD.load(),
+        turn_detection=MultilingualModel(),
+    )
 
-            # TTS out
-            out = OutputAudioStream()
-            await out.tts(reply, voice="female")
+    await session.start(
+        room=ctx.room,
+        agent=Assistant(),
+        room_options=room_io.RoomOptions(
+            audio_input=room_io.AudioInputOptions(
+                noise_cancellation=lambda params: noise_cancellation.BVCTelephony() if params.participant.kind == rtc.ParticipantKind.PARTICIPANT_KIND_SIP else noise_cancellation.BVC(),
+            ),
+        ),
+    )
 
-            self.room.publish_track(out, name="assistant_voice")
+    await session.generate_reply(
+        instructions="Greet the user and offer your assistance."
+    )
+
+
+if __name__ == "__main__":
+    agents.cli.run_app(server)

@@ -50,8 +50,10 @@ Follow these rules:
         return json.load(open(path, "r", encoding="utf-8"))
 
 
-    def generate(self, template_name, field_values, context):
-        return self.generate_document(template_name, field_values, context)
+    def generate(self, template_name, field_values, user_query):
+        # For now, we are not using memory or rag_context in the direct generation flow
+        # but the prompt expects them. We can pass empty strings or simple defaults.
+        return self.generate_document(template_name, field_values, memory_string="", rag_context="")
 
     # ------------------------------------------------------------
     # Generate legal draft using LLM
@@ -60,8 +62,8 @@ Follow these rules:
         self,
         template_name: str,
         user_inputs: dict,
-        memory_string: str,
-        rag_context: str
+        memory_string: str = "",
+        rag_context: str = ""
     ):
         template = self.load_template(template_name)
 
@@ -80,7 +82,12 @@ Follow these rules:
         )
 
         response = self.llm.invoke(prompt)
-        return response.content.strip()
+        content = response.content.strip()
+        
+        # Generate PDF
+        pdf_path = self.save_pdf(content)
+        
+        return pdf_path, content
 
     # ------------------------------------------------------------
     # Export to PDF

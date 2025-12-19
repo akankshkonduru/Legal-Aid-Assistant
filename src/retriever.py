@@ -63,13 +63,13 @@ def build_retriever(top_k: int = 5):
     vectorstore = PineconeVectorStore(
         index=index,
         embedding=embeddings,
-        text_key="text",      # must match metadata key you used during upsert
-        namespace=None        # set if you used namespace
+        text_key="text",      
+        namespace=None        
     )
 
     retriever = vectorstore.as_retriever(
         search_kwargs={"k": top_k}
     )
 
-    print("🔎 Retriever initialized using langchain-pinecone.")
+    print("Retriever initialized using langchain-pinecone.")
     return retriever

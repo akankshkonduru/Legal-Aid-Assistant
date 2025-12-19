@@ -23,3 +23,26 @@ dist/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# Frontend / Node
+node_modules/
+dist/
+.vite/
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+voice-agent-livekit/
+
+Code Snippets/
+
+DOCKER_DEPLOYMENT_GUIDE.md
+DOCKER_QUICK_REFERENCE.md
+DOCKER_STATUS_REPORT.md
+Dockerfile
+docker-compose.yml
+frontend-react/Dockerfile
+generated_documents/2025-12-02_10-44-56/
+generated_documents/2025-12-02_11-15-30/
+generated_documents/2025-12-19_11-20-03/
